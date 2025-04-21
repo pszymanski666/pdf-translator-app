@@ -4,6 +4,7 @@ import pytesseract
 from PIL import Image
 import io
 import os
+import json
 from openai import OpenAI
 
 # --- Konfiguracja ---
@@ -13,44 +14,19 @@ from openai import OpenAI
 # Możesz też wczytywać go ze zmiennej środowiskowej dla większego bezpieczeństwa.
 OPENROUTER_API_KEY = st.secrets["Openrouter_key"]  # <--- ZASTĄP SWOIM KLUCZEM
 
+# Wczytaj komunikaty systemowe z pliku JSON
+try:
+    with open("system_messages.json", "r", encoding="utf-8") as f:
+        SYSTEM_MESSAGES = json.load(f)
+except FileNotFoundError:
+    st.error("Nie znaleziono pliku system_messages.json!")
+    SYSTEM_MESSAGES = {"default": "Error: system_messages.json not found."}
+except json.JSONDecodeError:
+    st.error("Błąd podczas parsowania pliku system_messages.json!")
+    SYSTEM_MESSAGES = {"default": "Error: Could not parse system_messages.json."}
+
 # Opcjonalna wiadomość systemowa dla modelu LLM. Można ją dostosować.
-SYSTEM_MESSAGE = """**Role:** You are an advanced language model specialized in translating legal documents. Your expertise lies in handling potentially flawed source text originating from Optical Character Recognition (OCR) processes and producing accurate, contextually appropriate translations.
-
-**Input Context:** You will receive text that is the direct output of an OCR process performed on a legal document (e.g., court filings, pleadings, motions, judgments, contracts, correspondence). Due to its origin, the source text may contain:
-*   **Character Recognition Errors:** Typos, swapped characters, digits mistaken for letters, etc. (e.g., "c0urt" instead of "court", "liab1lity" instead of "liability").
-*   **Garbage Characters:** Unreadable symbols or random characters resulting from poor OCR quality.
-*   **Misrecognized Words:** Valid words that are contextually incorrect due to OCR errors.
-*   **Formatting Issues:** Incorrect line breaks, missing/excessive spaces, merged words.
-*   **Fragmentation:** Potentially missing parts of the text.
-
-**Primary Task:** Your main objective is to translate the provided text from a **Source Language** into a **Target Language**. **The specific Source and Target languages will be indicated in the user's message accompanying the text.**
-
-**Core Directive - Balancing Act:** You must carefully balance two critical objectives:
-1.  **Fidelity to Source Intent:** Strive to accurately convey the meaning and substance of the original document, even when faced with OCR imperfections. Do not omit information simply because it's partially obscured, if the intent can be reasonably inferred. Your primary goal is to reconstruct the *intended* legal meaning.
-2.  **Readability and Legal Correctness in Target Language:** The translation must be rendered in clear, grammatically correct, and natural-sounding language within the target language's legal context. It must be logically coherent and suitable for use by legal professionals.
-
-**Detailed Instructions for Handling OCR Issues:**
-
-1.  **Interpret, Don't Just Transliterate Errors:**
-    *   **Active Reconstruction:** When encountering OCR errors (typos, misrecognized characters), use the surrounding context and your knowledge of legal language to infer the *intended* word or phrase. Translate the *corrected/intended* meaning, not the literal error.
-    *   **Example:** If the source text contains "the plaiintiff alleges" or "section 1.A.i)", infer the correct "plaintiff" or "section 1.A.i)" and translate that intended term accurately into the target language.
-
-2.  **Legal Terminology and Style:**
-    *   **Precision:** Employ accurate and accepted legal terminology specific to the target language's legal system.
-    *   **Formality:** Maintain the formal, objective, and professional tone characteristic of legal documents in the target language.
-    *   **Consistency:** Ensure consistent use of terminology throughout the translation.
-
-3.  **Handling Severe Ambiguity and Unintelligible Segments:**
-    *   **Plausible Interpretation:** If a segment is heavily corrupted but a likely meaning can be inferred from context, provide the most plausible translation.
-    *   **Annotation for Unrecoverable Segments:** If a segment is so corrupted by OCR errors that its original meaning *cannot* be reasonably or confidently reconstructed (e.g., a string of garbage characters, completely nonsensical word sequences with no contextual clues):
-        *   **Translate Literally What Is Recognizable:** Translate only the characters or words within that segment that *are* recognizable, even if the resulting phrase is meaningless in the target language.
-        *   **Add a Clear Annotation:** Immediately follow this literal (and potentially nonsensical) translation with a standardized annotation indicating the suspected OCR issue and the uncertainty. Use a format like: `[literal translation: "..." - possible OCR error]` or `[lit: "..." - unclear due to OCR]`. **Apply this method consistently whenever reconstruction fails.** Do **not** invent content for these segments.
-
-4.  **Formatting:**
-    *   **Correct Obvious OCR Formatting Errors:** Do not replicate erroneous line breaks within sentences, missing spaces between words, or excessive spacing caused by OCR. Render the translation with standard, correct formatting.
-    *   **Preserve Meaningful Structure:** Maintain the logical structure (paragraphs, numbering, lists) if it is discernible in the source and relevant to the meaning.
-
-**Final Objective:** Generate a high-quality translation that is faithful to the *intended* meaning of the source legal document (despite OCR flaws) and serves as a clear, accurate, and legally appropriate document in the target language. Remember to check the user message for the specific Source and Target languages for each task."""
+# SYSTEM_MESSAGE = """... (usunięto długi ciąg znaków) ...""" # Usunięto statyczną definicję
 
 # Dostępne języki (Wyświetlana nazwa: kod Tesseract / kod dla LLM)
 LANGUAGES = {
@@ -108,7 +84,7 @@ def perform_ocr(images, lang_code):
         st.error(f"Błąd podczas OCR: {e}")
         return None
 
-def translate_text_stream(text_to_translate, source_lang_name, target_lang_name):
+def translate_text_stream(text_to_translate, source_lang_name, target_lang_llm):
     """Wysyła tekst do OpenRouter API i streamuje tłumaczenie."""
     if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "sk-or-v1-...":
         st.error("Klucz API OpenRouter nie został ustawiony. Edytuj plik app.py.")
@@ -119,22 +95,21 @@ def translate_text_stream(text_to_translate, source_lang_name, target_lang_name)
         api_key=OPENROUTER_API_KEY,
     )
 
-    prompt = f"Translate the following text from {source_lang_name} to {target_lang_name}:\n\n{text_to_translate}"
+    prompt = f"Przetłumacz poniższy tekst z {source_lang_name} na {target_lang_llm}:\n\n{text_to_translate}"
 
-    # Dostosuj prompt dla języka gruzińskiego
-    if target_lang_name == "Georgian": # Używamy tutaj nazwy przekazywanej do funkcji
-        prompt += """\n\n
-        **Important Instruction for Georgian:** 
-        - DO NOT interpret 'Georgian' as the 'Gregorian calendar'. This is incorrect. It refers to the Georgian LANGUAGE.
-        - DO NOT convert, format, or focus on DATES within the text, unless they are part of a sentence requiring normal translation along with the surrounding text.
-        """
-        
+    # Pobierz odpowiedni komunikat systemowy
+    system_message_content = SYSTEM_MESSAGES.get(target_lang_llm, SYSTEM_MESSAGES.get("default"))
+    if not system_message_content:
+        st.warning("Nie znaleziono domyślnego komunikatu systemowego. Używam pustego.")
+        system_message_content = ""
 
     try:
+        print(system_message_content)
+        print(prompt)
         stream = client.chat.completions.create(
             model="google/gemma-3-27b-it",
             messages=[
-                {"role": "system", "content": SYSTEM_MESSAGE},
+                {"role": "system", "content": system_message_content},
                 {"role": "user", "content": prompt},
             ],
             stream=True,
