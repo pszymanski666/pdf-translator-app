@@ -1,0 +1,5 @@
+streamlit
+pytesseract
+PyMuPDF
+openai
+Pillow 
