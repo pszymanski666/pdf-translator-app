@@ -115,6 +115,15 @@ def translate_text_stream(text_to_translate, source_lang_name, target_lang_name)
 
     prompt = f"Translate the following text from {source_lang_name} to {target_lang_name}:\n\n{text_to_translate}"
 
+    # Dostosuj prompt dla języka gruzińskiego
+    if target_lang_name == "Georgian": # Używamy tutaj nazwy przekazywanej do funkcji
+        prompt += """\n\n
+        **Important Instruction for Georgian:** 
+        - DO NOT interpret 'Georgian' as the 'Gregorian calendar'. This is incorrect. It refers to the Georgian LANGUAGE.
+        - DO NOT convert, format, or focus on DATES within the text, unless they are part of a sentence requiring normal translation along with the surrounding text.
+        """
+        
+
     try:
         stream = client.chat.completions.create(
             model="google/gemma-3-27b-it",
@@ -173,14 +182,33 @@ with st.sidebar:
     )
     target_lang_llm = LANGUAGES[target_lang_name][1]
 
-    translate_button = st.button(
-        "🚀 Przetłumacz", disabled=not uploaded_file, use_container_width=True
-    )
+    # Użyj kolumn dla przycisków
+    col1_sidebar, col2_sidebar = st.columns(2)
+    with col1_sidebar:
+        translate_button = st.button(
+            "🚀 Przetłumacz", disabled=not uploaded_file, use_container_width=True
+        )
+    with col2_sidebar:
+        # Dodajemy przycisk Reset
+        reset_button = st.button("🔄 Resetuj Stan", use_container_width=True)
 
     st.markdown("---")
 
     # Miejsce na komunikaty zwrotne
     feedback_placeholder = st.empty()
+
+# --- Reset Logic ---
+# Umieść ten blok POZA `with st.sidebar:` ale PRZED główną logiką przetwarzania
+if reset_button:
+    # Wyczyszczenie zmiennych stanu sesji
+    keys_to_reset = ['images', 'ocr_text', 'translation_stream', 'error_message', 'success_message']
+    for key in keys_to_reset:
+        if key in st.session_state:
+            st.session_state[key] = None
+    # Wyczyszczenie miejsca na komunikaty
+    feedback_placeholder.empty()
+    # Odświeżenie aplikacji
+    st.rerun() # Użyj st.rerun() zamiast st.experimental_rerun() w nowszych wersjach Streamlit
 
 # --- Główny Obszar (Podział na Kolumny) ---
 

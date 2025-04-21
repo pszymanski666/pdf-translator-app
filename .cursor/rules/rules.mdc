@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Zawsze używaj pliku PRD.MD do odczytu specyfikacji aplikacji.

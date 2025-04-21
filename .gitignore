@@ -1,0 +1,36 @@
+# Środowisko wirtualne
+.venv/
+
+# Streamlit config/cache
+.streamlit/
+
+# Pliki cache Pythona
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Logi
+*.log
+
+# Pliki testowe i raporty
+.coverage
+*.cover
+htmlcov/
+nosetests.xml
+coverage.xml
+*.pytest_cache/
+
+# Kompilacje Cython
+*.c
+*.so
+
+# Notebooki Jupyter - checkpointy
+.ipynb_checkpoints
+
+# Edytory
+.vscode/
+.idea/
+
+# Systemowe
+.DS_Store
+Thumbs.db
