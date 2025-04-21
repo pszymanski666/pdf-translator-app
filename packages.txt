@@ -1,6 +1,6 @@
 tesseract-ocr
-tesseract-ocr-eng # Angielski
-tesseract-ocr-deu # Niemiecki
-tesseract-ocr-pol # Polski
-tesseract-ocr-kat # Gruziński (kat = Kartvelian)
-tesseract-ocr-ukr # Ukraiński
+tesseract-ocr-eng
+tesseract-ocr-deu
+tesseract-ocr-pol
+tesseract-ocr-kat
+tesseract-ocr-ukr
