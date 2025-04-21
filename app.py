@@ -59,6 +59,12 @@ LANGUAGES = {
     "Polski": ("pol", "Polish"),
     "Gruziński": ("kat", "Georgian"),
     "Ukraiński": ("ukr", "Ukrainian"),
+    "Chiński (Uproszczony)": ("chi-sim", "Simplified Chinese"),
+    "Chiński (Tradycyjny)": ("chi-tra", "Traditional Chinese"),
+    "Francuski": ("fra", "French"),
+    "Hiszpański": ("spa", "Spanish"),
+    "Hinduski": ("hin", "Hindi"),
+    "Turecki": ("tur", "Turkish"),
 }
 
 # --- Funkcje pomocnicze ---

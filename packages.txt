@@ -4,3 +4,9 @@ tesseract-ocr-deu
 tesseract-ocr-pol
 tesseract-ocr-kat
 tesseract-ocr-ukr
+tesseract-ocr-chi-sim
+tesseract-ocr-chi-tra
+tesseract-ocr-fra
+tesseract-ocr-spa
+tesseract-ocr-hin
+tesseract-ocr-tur
