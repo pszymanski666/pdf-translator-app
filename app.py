@@ -196,8 +196,8 @@ def translate_text_stream(text_to_translate, source_lang_name, target_lang_llm):
         return None
 
     client = OpenAI(
-        #base_url="https://openrouter.ai/api/v1",
-        base_url="http://172.17.0.1:8000/v1",
+        base_url="https://openrouter.ai/api/v1",
+        #base_url="http://172.17.0.1:8000/v1",
         api_key=OPENROUTER_API_KEY,
     )
 
@@ -213,8 +213,8 @@ def translate_text_stream(text_to_translate, source_lang_name, target_lang_llm):
         #print(system_message_content)
         #print(prompt)
         stream = client.chat.completions.create(
-            #model="google/gemma-3-27b-it",
-            model="/model",
+            model="google/gemma-3-27b-it",
+            #model="/model",
             messages=[
                 {"role": "system", "content": system_message_content},
                 {"role": "user", "content": prompt},
